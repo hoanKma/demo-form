@@ -10,6 +10,7 @@ function App() {
     handleSubmit,
     control,
     watch,
+    reset,
     formState: { errors },
   } = useForm();
   const maxLength = 100;
@@ -30,12 +31,8 @@ function App() {
     { label: "Universal Business Cloud Project Management", value: 6 },
   ];
 
-  // const handleChange = (event) => {
-  //   const inputText = event.target.value;
-  //   if (inputText.length <= maxLength) {
-  //     setText(inputText);
-  //   }
-  // };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const [previewImage, setPreviewImage] = useState(null);
 
@@ -53,9 +50,22 @@ function App() {
     }
   };
 
-  const onSubmit = (data) => {
-    console.log(data);
-    // Call your API or handle form submission here
+  const onSubmit = async (data) => {
+    setIsSubmitting(true);
+    // Thực hiện xử lý dữ liệu hoặc gửi dữ liệu đến API
+    try {
+      // Mock API call
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Gửi thành công
+      setSubmitSuccess(true);
+      // Reset form sau khi gửi thành công
+      reset();
+    } catch (error) {
+      // Xử lý lỗi nếu cần
+      console.error("Error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -124,7 +134,6 @@ function App() {
                 maxLength={maxLength}
                 className={`w-full rounded-md  p-2 text-gray-900 shadow-sm ring-1 ring-gray-300 placeholder:text-gray-400   `}
                 placeholder="Example - Tried to register information on the form screen"
-                // onChange={handleChange}
                 {...register("about", { required: true })}
               />
               <p className="text-gray-500 text-right">
@@ -225,12 +234,27 @@ function App() {
           </div>
         </div>
 
+        {/* Thông báo gửi thành công */}
+        {submitSuccess && (
+          <div
+            className="mt-2 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
+            <strong className="font-bold">Success!</strong>
+            <span className="block sm:inline">
+              {" "}
+              The form has been submitted successfully.
+            </span>
+          </div>
+        )}
+
+        {/* Nút gửi form */}
         <div className="m-6 flex items-center justify-center gap-x-6">
           <button
             type="submit"
             className="rounded-md bg-indigo-600 px-10 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
-            Send
+            {isSubmitting ? "Sending..." : "Send"}
           </button>
         </div>
       </form>
