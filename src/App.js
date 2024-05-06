@@ -69,7 +69,7 @@ function App() {
   };
 
   return (
-    <div className="container mx-auto mt-10 pb-1 px-12 w-1/3 bg-white">
+    <div className="container mx-auto pt-10 pb-1 px-12 bg-white sm:w-full lg:w-1/3">
       <h1 className="text-xl font-bold mb-5 border-b border-b-gray-900/10 border-l-indigo-500/100 border-l-4 p-3">
         Contact us
       </h1>
