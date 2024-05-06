@@ -1,5 +1,5 @@
 import { CloudArrowUpIcon } from "@heroicons/react/16/solid";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import ReactSelect from "react-select";
 import Label from "./component/label";
@@ -11,15 +11,16 @@ function App() {
     control,
     watch,
     reset,
+    setError,
     formState: { errors },
   } = useForm();
   const maxLength = 100;
 
-  let country = [
-    { label: "Bangladesh", value: "Bangladesh" },
-    { label: "India", value: "India" },
-    { label: "China", value: "China" },
-    { label: "Finland", value: "Finland" },
+  const category = [
+    { label: "Inquiry about operation", value: 1 },
+    { label: "Inquiry about product", value: 2 },
+    { label: "Inquiry about service", value: 3 },
+    { label: "Inquiry about support", value: 4 },
   ];
 
   const product = [
@@ -33,14 +34,37 @@ function App() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-
   const [previewImage, setPreviewImage] = useState(null);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    setFullscreen(!fullscreen);
+  };
 
   const questionValue = watch("question") || "";
   const aboutValue = watch("about") || "";
+  const fileUpload = watch("fileUpload") || "";
 
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
+  useEffect(() => {
+    const file = fileUpload[0];
+    const fileParts = file?.name.split(".");
+    // Lấy phần tử cuối cùng của mảng, đó chính là phần mở rộng
+    const fileExtension = fileParts?.[fileParts?.length - 1];
+
+    if (fileExtension && !["png", "svg", "jpg"].includes(fileExtension)) {
+      setError("fileUpload", {
+        type: "custom",
+        message: "Only support .jpg, .png and .svg file",
+      });
+    } else {
+      if (file && file.size > 10 * 1024 * 1024) {
+        setError("fileUpload", {
+          type: "custom",
+          message: "Max 10 MB file is allowed",
+        });
+      }
+    }
+
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -48,10 +72,11 @@ function App() {
       };
       reader.readAsDataURL(file);
     }
-  };
+  }, [fileUpload, setError]);
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
+
     // Thực hiện xử lý dữ liệu hoặc gửi dữ liệu đến API
     try {
       // Mock API call
@@ -60,6 +85,7 @@ function App() {
       setSubmitSuccess(true);
       // Reset form sau khi gửi thành công
       reset();
+      reset({ category: null, product: null, fileUpload: null });
     } catch (error) {
       // Xử lý lỗi nếu cần
       console.error("Error:", error);
@@ -75,24 +101,26 @@ function App() {
       </h1>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <div className="col-span-full">
             <Label title="Contact category" />
-            <div className="mt-2">
+            <div className="mt-1">
               <Controller
-                name="country"
+                name="category"
                 control={control}
-                render={({ field: { onChange, _, value } }) => (
-                  <ReactSelect
-                    placeholder="Inquiry about operation"
-                    options={country}
-                    value={country.find((c) => c.value === value)}
-                    onChange={(value) => onChange(value)}
-                    isClearable
-                  />
-                )}
+                render={({ field: { onChange, _, value } }) => {
+                  return (
+                    <ReactSelect
+                      placeholder="Select category"
+                      options={category}
+                      value={value}
+                      onChange={(value) => onChange(value)}
+                      isClearable
+                    />
+                  );
+                }}
               />
-              {errors.country && (
+              {errors.category && (
                 <p className="mt-1 text-sm text-red-500">
                   This field is required
                 </p>
@@ -101,7 +129,7 @@ function App() {
           </div>
           <div className="col-span-full">
             <Label title="Target product" isRequired />
-            <div className="mt-2">
+            <div className="mt-1">
               <Controller
                 name="product"
                 control={control}
@@ -109,7 +137,7 @@ function App() {
                   <ReactSelect
                     placeholder="Select product"
                     options={product}
-                    value={product.find((c) => c.value === value)}
+                    value={value}
                     onChange={(value) => onChange(value)}
                     isClearable
                   />
@@ -126,19 +154,21 @@ function App() {
           <div className="col-span-full">
             <Label title="What kind of operation was he doing?" isRequired />
 
-            <div className="mt-2">
-              <textarea
-                id="about"
-                name="about"
-                rows={3}
-                maxLength={maxLength}
-                className={`w-full rounded-md  p-2 text-gray-900 shadow-sm ring-1 ring-gray-300 placeholder:text-gray-400   `}
-                placeholder="Example - Tried to register information on the form screen"
-                {...register("about", { required: true })}
-              />
-              <p className="text-gray-500 text-right">
-                {aboutValue.length}/{maxLength}
-              </p>
+            <div className="mt-1">
+              <div className="relative">
+                <textarea
+                  id="about"
+                  name="about"
+                  rows={3}
+                  maxLength={maxLength}
+                  className={`w-full rounded-md p-2 text-gray-900 shadow-sm ring-1 ring-gray-300 placeholder:text-gray-400`}
+                  placeholder="Example - Tried to register information on the form screen"
+                  {...register("about", { required: true })}
+                />
+                <p className="absolute bottom-2 right-2 text-gray-500 text-xs">
+                  {aboutValue.length}/{maxLength}
+                </p>
+              </div>
               {errors.about && (
                 <p className="mt-1 text-sm text-red-500">
                   This field is required
@@ -149,19 +179,22 @@ function App() {
           <div className="col-span-full">
             <Label title=" Here is the question text" isRequired />
 
-            <div className="mt-2">
-              <textarea
-                id="question"
-                name="question"
-                rows={2}
-                maxLength={maxLength}
-                className={`w-full rounded-md border-0 p-2 text-gray-900 shadow-sm ring-1  ring-gray-300 placeholder:text-gray-400  `}
-                placeholder="placeholder"
-                {...register("question", { required: true })}
-              />
-              <p className="text-gray-500 text-right">
-                {questionValue.length}/{maxLength}
-              </p>
+            <div className="mt-1">
+              <div className="relative">
+                <textarea
+                  id="question"
+                  name="question"
+                  rows={2}
+                  maxLength={maxLength}
+                  className={`w-full rounded-md border-0 p-2 text-gray-900 shadow-sm ring-1  ring-gray-300 placeholder:text-gray-400  `}
+                  placeholder="Enter your question here..."
+                  {...register("question", { required: true })}
+                />
+                <p className="absolute bottom-2 right-2 text-gray-500 text-xs">
+                  {questionValue.length}/{maxLength}
+                </p>
+              </div>
+
               {errors.question && (
                 <p className="mt-1 text-sm text-red-500">
                   This field is required
@@ -170,9 +203,8 @@ function App() {
             </div>
           </div>
           <div className="col-span-full">
-            <Label title="Action screenshots" />
-
-            <div className="mt-2 flex justify-center rounded-lg border border-dashed border-indigo-600 px-6 py-10">
+            <Label title="Action screenshots" isRequired />
+            <div className="flex w-full mt-1 justify-center rounded-lg border border-dashed border-indigo-600 py-4">
               <div className="text-center">
                 <CloudArrowUpIcon
                   className="mx-auto h-12 w-12 text-gray-300"
@@ -180,40 +212,51 @@ function App() {
                 />
                 <div className=" flex text-sm leading-6 text-gray-600 ">
                   <label
-                    htmlFor="file-upload"
+                    htmlFor="fileUpload"
                     className="relative  cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
                   >
                     <span>Upload a file</span>
                     <input
-                      id="file-upload"
-                      name="file-upload"
+                      id="fileUpload"
+                      name="fileUpload"
                       type="file"
                       className="sr-only"
-                      onChange={handleFileChange}
-                      {...register("fileUpload")}
+                      accept=".jpg, .png, .svg"
+                      {...register("fileUpload", { required: true })}
                     />
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>
                 <p className="text-xs leading-5 text-gray-600">
-                  Max 10 MB files are allowed
+                  Max 10 MB file is allowed
+                </p>
+                <p className="text-xs leading-5 text-gray-600">
+                  Only support .jpg, .png and .svg file
                 </p>
               </div>
             </div>
-            <p className="text-gray-400">
-              Only support .jpg, .png and .svg and zip files
-            </p>
-          </div>
 
-          {previewImage && (
-            <div className="mt-2">
-              <img
-                src={previewImage}
-                alt="Preview"
-                className="max-w-full h-auto"
-              />
+            <div
+              className={`flex ${
+                fullscreen ? "fullscreen" : ""
+              } justify-center mt-2 `}
+              onClick={toggleFullscreen}
+            >
+              {fileUpload && previewImage && (
+                <img
+                  src={previewImage}
+                  alt="Preview"
+                  style={{ maxHeight: "200px" }}
+                  className="max-w-full h-auto cursor-pointer border border-indigo-500 rounded-md"
+                />
+              )}
             </div>
-          )}
+            {!!errors.fileUpload && (
+              <p className="mt-1 text-sm text-red-500">
+                {errors.fileUpload.message || "This field is required"}
+              </p>
+            )}
+          </div>
 
           <div className="flex gap-2  items-center">
             <input
@@ -237,7 +280,7 @@ function App() {
         {/* Thông báo gửi thành công */}
         {submitSuccess && (
           <div
-            className="mt-2 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+            className="mt-1 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
             role="alert"
           >
             <strong className="font-bold">Success!</strong>
